@@ -108,9 +108,44 @@ http://<host>:1880/webhook
 
 Because the response is sent before the Tulip write completes, a `200 accepted` means the webhook was received and routed — not that the write succeeded. Check the debug sidebar to confirm writes.
 
+## Debugging
+
+The flow has debug nodes wired at each stage. Open the debug sidebar (bug icon, top right) to watch messages as they flow:
+
+| Node | Shows |
+|------|-------|
+| 1. Incoming payload | The raw webhook body as received |
+| 2. Extracted route | The route object built by Extract & Route — table ID, record ID, and mapped fields |
+| 3. Tulip request URL | The exact URL being called (useful for catching workspace path problems) |
+| 4. Tulip API response | Tulip's raw response body, with the status code shown under the node |
+| 5. Final result | Summary: route name, record ID, action taken (`created`/`updated`), status, success or failure |
+| Auth rejected | Fires only when auth fails |
+
+Function nodes also show live status underneath them — green for success, red for failure, blue for in-progress. This gives you an at-a-glance view without opening the sidebar.
+
+To quiet things down in production, click the toggle on the right edge of any debug node to disable it, then redeploy. The `Final result` node is the one worth keeping on.
+
+None of the debug nodes expose credentials — node 3 shows only the URL, not the `Authorization` header.
+
+### Reading the output
+
+A healthy upsert against an existing record produces, in order:
+
+```
+1. Incoming payload    { "id": "test-1", "message": "hello" }
+2. Extracted route     { name: "...", tableId: "...", recordId: "test-1", mode: "upsert", fields: {...} }
+3. Tulip request URL   "https://acme.tulip.co/api/v3/w/DEFAULT/tables/TBL/records/test-1"
+4. Tulip API response  { ...the existing record... }        (status 200 → record exists)
+3. Tulip request URL   "https://acme.tulip.co/api/v3/w/DEFAULT/tables/TBL/records/test-1"
+4. Tulip API response  { ...updated record... }             (status 200 → PUT succeeded)
+5. Final result        { route: "...", recordId: "test-1", action: "updated", statusCode: 200, result: "success" }
+```
+
+Nodes 3 and 4 appear twice for upserts — once for the existence check, once for the write. For a new record, the first response is a `404` and the second call is a `POST` with `action: "created"`.
+
 ## Troubleshooting
 
-**`403` or `404 NoSuchEndpoint` on writes** — usually a workspace path issue. Set `TULIP_WORKSPACE` (try `DEFAULT`) and redeploy.
+**`403` or `404 NoSuchEndpoint` on writes** — usually a workspace path issue. Check debug node 3 to see the URL being called. Set `TULIP_WORKSPACE` (try `DEFAULT`) and redeploy.
 
 **`no matching routes`** — the Extract & Route function returned an empty array. Check that your conditions match the actual payload shape.
 
