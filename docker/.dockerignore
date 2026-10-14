@@ -1,0 +1,7 @@
+tests/
+.env
+.env.example
+mapping.example.json
+*.md
+.git
+.gitignore

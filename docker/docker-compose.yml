@@ -1,0 +1,21 @@
+services:
+  bridge:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # Required: your Tulip instance URL
+      - TULIP_INSTANCE_URL=${TULIP_INSTANCE_URL}
+      # Required: Tulip bot API credentials
+      - TULIP_API_KEY=${TULIP_API_KEY}
+      - TULIP_API_SECRET=${TULIP_API_SECRET}
+      # Optional: secret for webhook auth (HMAC signing secret or bearer token)
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      # Optional: Tulip workspace ID (for multi-workspace instances)
+      - TULIP_WORKSPACE=${TULIP_WORKSPACE:-}
+      # Optional: comma-separated IPv4/CIDR allowlist
+      - ALLOWED_SOURCE_IPS=${ALLOWED_SOURCE_IPS:-}
+    volumes:
+      # Mount your mapping config
+      - ./mapping.json:/app/mapping.json:ro
+    restart: unless-stopped

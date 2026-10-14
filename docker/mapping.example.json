@@ -1,0 +1,65 @@
+{
+  "_comment": "This is an example mapping file. See README.md for full documentation.",
+
+  "auth": {
+    "type": "hmac",
+    "algorithm": "sha256",
+    "header": "x-webhook-signature",
+    "prefix": "sha256="
+  },
+
+  "routes": [
+    {
+      "name": "Work order events",
+      "when": {
+        "field": "topic",
+        "pattern": "work_order\\.(created|moved)"
+      },
+      "table": "YOUR_WORK_ORDERS_TABLE_ID",
+      "recordId": "data.workOrder.identifier",
+      "mode": "upsert",
+      "fields": {
+        "YOUR_STATUS_COLUMN": "data.workOrder.status",
+        "YOUR_LOCATION_COLUMN": "data.currentLocation.name"
+      }
+    },
+    {
+      "name": "Asset events",
+      "when": {
+        "field": "topic",
+        "pattern": "asset\\.(created|moved)"
+      },
+      "table": "YOUR_ASSETS_TABLE_ID",
+      "recordId": "data.asset.identifier",
+      "mode": "upsert",
+      "fields": {
+        "YOUR_TYPE_COLUMN": "data.asset.type",
+        "YOUR_LOCATION_COLUMN": "data.currentLocation.name",
+        "YOUR_LAST_SEEN_COLUMN": {
+          "from": "eventTimestamp",
+          "transform": "isoTimestamp"
+        }
+      }
+    },
+    {
+      "name": "Event log (all events)",
+      "table": "YOUR_HISTORY_TABLE_ID",
+      "recordId": "id",
+      "mode": "insert",
+      "fields": {
+        "YOUR_TOPIC_COLUMN": "topic",
+        "YOUR_TIMESTAMP_COLUMN": {
+          "from": "eventTimestamp",
+          "transform": "isoTimestamp"
+        },
+        "YOUR_PAYLOAD_COLUMN": {
+          "from": "$body",
+          "transform": "jsonStringify"
+        },
+        "YOUR_SOURCE_COLUMN": {
+          "value": "webhook-bridge"
+        }
+      }
+    }
+  ]
+}
